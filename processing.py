@@ -55,10 +55,12 @@ if __name__ == '__main__':
                 print(message.decode("utf-8"))
                 
                 bytes_per_array = int.from_bytes(arduino.read(4), byteorder='little')
+                num_arrays      = int.from_bytes(arduino.read(4), byteorder='little')
                 print("Bytes per array: {}".format(bytes_per_array))
                 start_time = timeit.default_timer()
-                array1 = arduino.read(bytes_per_array)
-                array2 = arduino.read(bytes_per_array)
+                arrays = []
+                for i in range(num_arrays):
+                    arrays.append(arduino.read(bytes_per_array))
                 elapsed = timeit.default_timer() - start_time
 
                 
@@ -66,26 +68,32 @@ if __name__ == '__main__':
                 
                 
                 start_time = time.perf_counter_ns()
-                array1 = convertToInt(array1)
-                array2 = convertToInt(array2)
+                for i in range(num_arrays):
+                    arrays[i] = convertToInt(arrays[i])
+                
                 elapsed = time.perf_counter_ns() - start_time
                 print("Converted {} bytes into {} integers in {:2.3f} ms".format(bytes_per_array*2, bytes_per_array, elapsed * 1e-6))
                 
 
-                xarr = range(len(array1))
+                xarr = range(len(arrays[0]))
 
-                if (max(array1) < 4100 and max(array2) < 4100):
+                if (max(arrays[0]) < 4100 and max(arrays[1]) < 4100):
                     ax1.clear()
-                    ax1.plot(xarr, array1)
-                    ax1.plot(xarr, array2)
+                    for arr in arrays:
+                        ax1.plot(xarr, arr)
 
                     plt.pause(0.001)
 
                 if filesWritten < 10:
-                    with open('waveform_{}'.format(filesWritten), 'w') as f:
-                        for a, b in zip(array1, array2):
-                            f.write("{} {}\n".format(a, b))
+                    with open('waveforms/30deg_waveform_{}'.format(filesWritten), 'w') as f:
+                        for i in range(len(arrays[0])):
+                            for j in range(len(arrays)):
+                                f.write("{} ".format(arrays[j][i]))
+                            f.write("\n")
                     filesWritten += 1
+                else:
+                    pass
+                    # break
 
                 message = arduino.readline()
                 print(message.decode("utf-8"))
